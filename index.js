@@ -14,13 +14,15 @@ const config = {
 const client = new line.Client(config);
 
 app.post('/webhook', line.middleware(config), async (req, res) => {
+  res.sendStatus(200); // 👈 先にLINEに「OK」と返す！
+
   const events = req.body.events;
-  console.log('📩 Webhook received:', JSON.stringify(events, null, 2)); // ← 追加
+  console.log('📩 Webhook received:', JSON.stringify(events, null, 2));
 
   for (const event of events) {
     if (event.type === 'message' && event.message.type === 'text') {
       const userMessage = event.message.text;
-      console.log('💬 User message:', userMessage); // ← 追加
+      console.log('💬 User message:', userMessage);
 
       try {
         const gptResponse = await axios.post(
@@ -28,6 +30,8 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
           {
             model: 'gpt-3.5-turbo',
             messages: [{ role: 'user', content: userMessage }],
+            temperature: 0,
+            max_tokens: 200,
           },
           {
             headers: {
@@ -38,7 +42,7 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
         );
 
         const replyText = gptResponse.data.choices[0].message.content;
-        console.log('🤖 GPT reply:', replyText); // ← 追加
+        console.log('🤖 GPT reply:', replyText);
 
         await client.replyMessage(event.replyToken, {
           type: 'text',
@@ -54,8 +58,6 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
       }
     }
   }
-
-  res.sendStatus(200);
 });
 
 app.listen(3000, () => {
